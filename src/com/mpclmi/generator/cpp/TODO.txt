@@ -1,0 +1,14 @@
+03/05/2015  
+This directory contains a set of classes that should be able 
+to process annotated by developers classes and produce hirearchy of 
+Cache->Container->indexes 
+
+1. do some research on reflective visitor pattern or see if generic visitor pattern is enough , 
+possibly some kind of delegator pattern needed instead of visitor , this has to be yet decided.
+
+2. Need some kind of abstruction , that will decouple the actual code generator from the output format.
+
+3. But for the first release OK to merge both processing and code generating functionalities in each of
+ Cache.java , Container.java , Index.java
+
+
