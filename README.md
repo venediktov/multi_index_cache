@@ -11,18 +11,18 @@ a main driver for this code generator.
 
 
 Structure ( work in progress ) :
-* [src/](../../tree/dev/src/) -- the root directory
-   * [com/](../../src/com/)
-      * [mpclmi/](../../src/com/mpclmi/)
-        * [generator/](../../src/com/mpclmi/generator/) 
-            * [Generator.java](../../src/com/mpclmi/generator/Generator.java) 
-            * [cpp/](../../src/com/mpclmi/generator/cpp/) -- C++ code generator
-            * [java/](../../src/com/mpclmi/generator/java) -- Java code generator
-        * [test/](../../tree/com/mpclmi/test/)
-* [system/](../../src/system/) -- C++ shared memory and multi index container 
-* [config.mk](../../config.mk)
-* [prog.mk](../../src/prog.mk)
-* [Makefile](../../src/Makefile)
+* [src/](../../tree/master/src/) -- the root directory
+   * [com/](../../tree/master/src/com/)
+      * [mpclmi/](../../tree/master/src/com/mpclmi/)
+        * [generator/](../../tree/master/src/com/mpclmi/generator/) 
+            * [Generator.java](../../tree/master/src/com/mpclmi/generator/Generator.java) 
+            * [cpp/](../../tree/master/src/com/mpclmi/generator/cpp/) -- C++ code generator
+            * [java/](../../tree/master/src/com/mpclmi/generator/java) -- Java code generator
+        * [test/](../../tree/master/com/mpclmi/test/)
+* [system/](../../tree/master/src/system/) -- C++ shared memory and multi index container 
+* [config.mk]
+* [prog.mk]
+* [Makefile]
 
 
 The Make or other build system will generate cpp and java code based on input from IDL .
