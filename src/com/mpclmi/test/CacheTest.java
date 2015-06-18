@@ -17,15 +17,15 @@ import com.mpclmi.CacheIndex;
  * @author vvenedict@gmail.com
  */
 
-@CacheAccess(type = CacheAccess.Type.SHARED)
+@CacheAccess(type = CacheAccess.Type.SHARED, name = "CachedRecord")
 @CacheIndex(type = CacheIndex.Type.UNIQUE , fields={"name", "last_name", "dob"})
 @CacheIndex(type = CacheIndex.Type.NON_UNIQUE , fields={"employer"})
-@CacheIndex(type = CacheIndex.Type.NON_UNIQUE , fields={"dob"})
+@CacheIndex(type = CacheIndex.Type.NON_UNIQUE , fields={"dob"})        
 class Record {
-    public static String name;
-    public static String last_name;
-    public static java.util.Date dob ;
-    public static String employer;
+    public String name;
+    public String last_name;
+    public java.util.Date dob ;
+    public String employer;
 }
 
 

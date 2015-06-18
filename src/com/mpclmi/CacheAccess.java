@@ -14,4 +14,5 @@ public @interface CacheAccess {
     }
     
     Type type() default Type.PRIVATE;
+    String name()  ;
 }
