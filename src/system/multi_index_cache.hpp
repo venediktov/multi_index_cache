@@ -19,6 +19,7 @@
 
 #include <boost/multi_index_container.hpp>
 #include <boost/bind.hpp>
+#include <boost/noncopyable.hpp>
 
 namespace {
     namespace bip = boost::interprocess ;
@@ -29,8 +30,7 @@ namespace mpclmi { namespace ipc {
 
 
 template<typename Memory, template<class> class Data, typename IndexedBy>
-class MultiIndexCache //: public Singleton< MultiIndexCache<Memory,Data> > ,
-                      //private boost::noncopyable
+class MultiIndexCache : private boost::noncopyable
 {
     
 public:
@@ -39,13 +39,10 @@ public:
     typedef typename Memory::segment_t segment_t;
     typedef bip::allocator<char, segment_manager_t>  char_allocator;
     typedef bip::basic_string<char, std::char_traits<char>, char_allocator>   char_string;
-    typedef Data<char_allocator> Data_t ;
+    typedef Data<Memory> Data_t ;
     //Definition of the boost::multi_index_container holding Data_t
     typedef bip::allocator<Data_t, segment_manager_t>  data_allocator;
     typedef boost::multi_index_container< Data_t, IndexedBy, data_allocator>  Container_t ;
-
-
-    //friend class singleton< MultiIndexCache<Memory> > ;
   
     template<typename AnyData> 
     bool Insert   ( const AnyData &row ) 
@@ -56,24 +53,27 @@ public:
         try {
             is_success = insert_data(row) ;
         } catch (const  bad_alloc_exception_t &e) {
-//            LOG(std::string("Data Was not inserted , MEMORY AVAILABLE=") + 
-//                boost::lexical_cast<std::string>(_segment_ptr->get_free_memory()), Logger::INFO); //TODO include Logger
+            std::cerr << "Data Was not inserted , MEMORY AVAILABLE="
+                      << boost::lexical_cast<std::string>(_segment_ptr->get_free_memory()) ;
             grow_memory(MEMORY_SIZE);
             is_success = insert_data(row) ;
         }
         return is_success ;
     }
     template<typename Key , typename AnyData, typename Tag>
-    bool Retrieve ( const Key &key, std::vector<AnyData> & rows, Tag &) {
+    bool Retrieve ( const Key &key, std::vector<AnyData> & rows, const Tag &) {
         typedef typename Container_t::template index<Tag>::type tag_index_t ;
         typedef typename tag_index_t::iterator iterator ;           
  
         bip::sharable_lock<bip::named_upgradable_mutex> guard(_named_mutex) ;
-        char_string ipc_key(Data_t::serialize(key), _segment_ptr->get_segment_manager()) ;
-        std::pair<iterator, iterator> p = _container_ptr->get<Tag>().equal_range(ipc_key) ;
-        Data_t deserializer; //TODO: If deserialize static no need to pass instance to boost::bind())
-        std::transform(p.first, p.second, std::back_inserter(rows), boost::bind(&Data_t::deserialize, boost::cref(deserializer), _1)) ;  
+        Data_t item(_segment_ptr->get_segment_manager());
+        std::pair<iterator, iterator> p = _container_ptr->template get<Tag>().equal_range(item.template cache_key<Key>(key)) ;
+        std::transform(p.first, p.second, std::back_inserter(rows), boost::bind(&Data_t::convert, _1)) ;  
         return !rows.empty() ;
+    }
+    static MultiIndexCache &instance() {
+        static MultiIndexCache impl;
+        return impl;    
     }
 private:
     MultiIndexCache() : _segment_ptr(), _container_ptr(), _store_name(), 
@@ -84,13 +84,13 @@ private:
         _store_name =  Memory::convert_base_dir(data_base_dir) + "MPCLMI" ;
         _segment_ptr.reset(new segment_t(bip::open_or_create, _store_name.c_str(), MEMORY_SIZE) ) ;
         _container_ptr = _segment_ptr->template find_or_construct<Container_t>("CACHE")
-            (std::less<char_string>(), typename Container_t::allocator_type(_segment_ptr->get_segment_manager()));
+            (typename Container_t::allocator_type(_segment_ptr->get_segment_manager()));
     }
  
     void attach() {
         _segment_ptr.reset(new segment_t(bip::open_only,_store_name.c_str()) ) ;
         _container_ptr = _segment_ptr->template find_or_construct<Container_t>("CACHE")
-            (std::less<char_string>(), typename Container_t::allocator_type(_segment_ptr->get_segment_manager()));
+            (typename Container_t::allocator_type(_segment_ptr->get_segment_manager()));
     }
      
     void grow_memory(size_t size) {
@@ -98,8 +98,8 @@ private:
           _segment_ptr.reset() ;
           segment_t::grow(_store_name.c_str(), size) ;
         } catch ( const std::exception &e) {
-//            LOG(std::string("FAILED TO GROW=") + 
-//                boost::lexical_cast<std::string>(_segment_ptr->get_free_memory()), Logger::INFO); //TODO: include logger
+            std::cerr <<"FAILED TO GROW="
+                      <<boost::lexical_cast<std::string>(_segment_ptr->get_free_memory()) ;
         }
         attach() ; // reattach to newly created
     }
@@ -110,12 +110,12 @@ private:
         attach() ;
         try {
             Data_t item(_segment_ptr->get_segment_manager());
-            item.serialize(row);
+            item  = row;
             is_success = _container_ptr->insert(item).second ;
         } catch (const  bad_alloc_exception_t &e) {
             grow_memory(MEMORY_SIZE);
             Data_t item(_segment_ptr->get_segment_manager());
-            item.serialize(row);
+            item = row;
             is_success = _container_ptr->insert(item).second ;
         }
         
